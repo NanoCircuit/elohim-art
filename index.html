@@ -316,7 +316,11 @@
                         <th class="p-4 text-right">Descarga</th>
                     </tr>
                 </thead>
-                <tbody id="vigentes-body" class="divide-y divide-slate-100 bg-white"></tbody>
+                <tbody id="vigentes-body" class="divide-y divide-slate-100 bg-white">
+               <tr>
+               <td colspan="3" class="p-4 text-center text-slate-400 font-medium">Cargando biblioteca de artes vigentes...</td>
+              </tr>
+             </tbody>
             </table>
         </div>
     </div>
@@ -717,8 +721,36 @@ async function loadEmailLogs() {
 
 async function loadLibraries() {
     const tbody = document.getElementById('vigentes-body');
-    tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">Biblioteca sincronizada con artes aprobados.</td></tr>';
+    if (!tbody) return;
+
+    // Consultar a Supabase solo los procesos cuyo estado final sea 'Aprobado'
+    const { data, error } = await supabaseClient
+        .from('art_processes')
+        .select('*')
+        .eq('current_status', 'Aprobado')
+        .order('updated_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" class="p-4 text-center text-slate-400 font-medium">No hay artes aprobados vigentes en la biblioteca todavía.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Dibujar dinámicamente las filas con enlace de descarga real del PDF
+    tbody.innerHTML = data.map(p => `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0 text-slate-700 text-xs">
+            <td class="p-4 font-bold text-slate-900">${p.product_code}</td>
+            <td class="p-4">${p.product_name} <span class="ml-2 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[10px] font-bold uppercase">${p.art_type}</span></td>
+            <td class="p-4 text-right">
+                <button onclick="openProcessDetail('${p.id}')" class="text-blue-600 font-bold hover:underline cursor-pointer">Ver Expediente</button>
+            </td>
+        </tr>
+    `).join("");
 }
+
 let selectedProcessIdForDetail = null;
 
 async function openProcessDetail(processId) {
