@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function showView(viewName) {
-    ['login', 'my-pending', 'process-list', 'new-process', 'libraries', 'admin-users', 'ti-emails', 'view-process-detail'].forEach(v => {
+    ['login', 'my-pending', 'process-list', 'new-process', 'libraries', 'admin-users', 'ti-emails', 'process-detail'].forEach(v => {
         const element = document.getElementById(`view-${v}`);
         if (element) element.classList.add('hidden');
     });
@@ -723,9 +723,9 @@ let selectedProcessIdForDetail = null;
 
 async function openProcessDetail(processId) {
     selectedProcessIdForDetail = processId;
-    showView('view-process-detail');
+    showView('process-detail'); // Corrección del nombre de navegación
 
-    // 1. Consultar los datos del proceso seleccionado en Supabase
+    // 1. Consultar los datos del proceso en Supabase
     const { data: process, error } = await supabaseClient
         .from('art_processes')
         .select('*')
@@ -746,7 +746,7 @@ async function openProcessDetail(processId) {
         .eq('cycle_number', process.current_cycle)
         .maybeSingle();
 
-    // 3. Pintar los datos del proceso en las etiquetas del HTML
+    // 3. Pintar los datos del proceso en las etiquetas correspondientes
     document.getElementById('detail-product-code').innerText = process.product_code;
     document.getElementById('detail-product-name').innerText = process.product_name;
     document.getElementById('detail-art-type').innerText = process.art_type;
@@ -754,7 +754,7 @@ async function openProcessDetail(processId) {
     document.getElementById('detail-status').innerText = process.current_status;
     document.getElementById('detail-download-pdf').href = cycle ? cycle.pdf_url : "#";
 
-    // 4. RESETEAR EL COLOR DEL FLUJOGRAMA VISUAL (Círculos)
+    // 4. Resetear colores del flujograma visual
     ['creacion', 'revisor1', 'revisor2', 'aprobador', 'compras'].forEach(step => {
         const circle = document.querySelector(`#step-${step} span`);
         if (circle) {
@@ -762,7 +762,7 @@ async function openProcessDetail(processId) {
         }
     });
 
-    // 5. ILUMINAR EN AZUL EL PASO ACTUAL SEGÚN EL ESTADO DE SUPABASE
+    // 5. Iluminar el paso activo según el estado actual
     let activeStepId = 'step-creacion';
     if (process.current_status === 'En revisión 1') activeStepId = 'step-revisor1';
     if (process.current_status === 'En revisión 2') activeStepId = 'step-revisor2';
