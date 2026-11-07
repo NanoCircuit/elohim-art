@@ -332,48 +332,50 @@ function showView(viewName) {
 }
 
 async function loadUserProfile(userId) {
-    console.log("Intentando cargar perfil para el ID:", userId);
+    console.log("Consultando base de datos real para el ID de usuario:", userId);
     
-    // Intentamos la consulta normal a Supabase
-    const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).maybeSingle();
+    // Consulta directa y limpia a la tabla profiles
+    const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
     
-    if (error || !data) {
-        console.warn("Fallo de red local o perfil no encontrado. Activando Modo de Pruebas Autónomo.");
-        
-        // MODODE PRUEBAS: Si el navegador bloquea la consulta por seguridad, 
-        // te asignamos el rol de Administrador automáticamente para que puedas ver todo.
-        currentUserProfile = {
-            id: userId,
-            full_name: "Usuario de Pruebas",
-            role: "Administrador", // Puedes cambiarlo por "Creador" si quieres probar esa vista
-            is_active: true
-        };
-    } else {
-        // Si la red funcionó bien, usamos tus datos reales de Supabase
-        currentUserProfile = data;
+    if (error) {
+        console.error("Error devuelto por Supabase:", error);
+        alert("Error interno del servidor al consultar el perfil. Revisa la consola (F12).");
+        await logout();
+        return;
+    }
+    
+    if (!data) {
+        console.error("No se encontró ninguna fila en la tabla 'profiles' para el ID:", userId);
+        alert("Acceso no autorizado: Tu cuenta de Auth existe, pero no está registrada en la tabla de perfiles.");
+        await logout();
+        return;
     }
 
-    // Colocamos el nombre arriba a la derecha
+    // Si todo está correcto, asignamos el usuario real de Supabase
+    currentUserProfile = data;
     document.getElementById('user-info').innerText = `${currentUserProfile.full_name} [${currentUserProfile.role}]`;
 
-    // Ocultar botones de navegación antes de activarlos
+    // Configurar menú de navegación según el rol real
     document.getElementById('nav-new-process').classList.add('hidden');
     document.getElementById('nav-admin').classList.add('hidden');
     document.getElementById('nav-ti').classList.add('hidden');
 
-    // Desbloquear secciones del menú según el rol asignado
     if (currentUserProfile.role === 'Creador') {
         document.getElementById('nav-new-process').classList.remove('hidden');
     }
     if (currentUserProfile.role === 'Administrador') {
-        document.getElementById('nav-new-process').classList.remove('hidden'); // Te lo activo también aquí para que pruebes todo
+        document.getElementById('nav-new-process').classList.remove('hidden'); 
         document.getElementById('nav-admin').classList.remove('hidden');
         document.getElementById('nav-ti').classList.remove('hidden');
     }
 
-    // Entrar directo al sistema
     showView('process-list');
 }
+
 
 
 
